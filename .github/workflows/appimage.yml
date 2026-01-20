@@ -136,7 +136,29 @@ jobs:
             }
             EOF
             
-            # Patch main build.zig.zon
+            # Patch main build.zig.zon to point to local path
+            # We completely overwrite it to ensure it's correct for 0.13.0 and uses the local path
+            cat > build.zig.zon <<EOF
+            .{
+                .name = "zigview",
+                .version = "0.0.0",
+                .dependencies = .{
+                    .webview = .{
+                        .path = "deps/webview",
+                    },
+                },
+                .paths = .{
+                    "build.zig",
+                    "build.zig.zon",
+                    "src",
+                },
+            }
+            EOF
+            
+            echo "Patched main build.zig.zon:"
+            cat build.zig.zon
+
+      - name: Build Elm frontend
 
           cat > build.zig.zon <<EOF
           .{
