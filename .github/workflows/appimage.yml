@@ -59,6 +59,19 @@ jobs:
           # We assume it's a static library being built
           sed -i 's/addLibrary/addStaticLibrary/g' deps/webview/build.zig
           
+          echo "Debug: Content of deps/webview/build.zig:"
+          cat deps/webview/build.zig
+          
+          # Attempt to fix 'root_module' error blindly (comment it out) - this is a guess!
+          sed -i 's/\.root_module/\/\/ .root_module/g' deps/webview/build.zig
+          
+          # If we comment out root_module, we probably need to add root_source_file.
+          # We'll try to insert it after .name = "webview",
+          sed -i 's/\.name = "webview",/.name = "webview",\n            .root_source_file = b.path("src\/webview.zig"),/g' deps/webview/build.zig
+          
+          echo "Debug: Patched deps/webview/build.zig:"
+          cat deps/webview/build.zig
+          
           # Verify patch
           cat deps/webview/build.zig.zon
           
