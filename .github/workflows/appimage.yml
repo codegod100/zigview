@@ -73,39 +73,23 @@ jobs:
           echo "Debug: Overwritten deps/webview/build.zig.zon:"
           cat deps/webview/build.zig.zon
           
-          # Overwrite deps/webview/build.zig with a minimal Zig 0.13.0 version
-          # We include system linking which is required for webview
-          cat > deps/webview/build.zig <<EOF
-          const std = @import("std");
-
-          pub fn build(b: *std.Build) void {
-              const target = b.standardTargetOptions(.{});
-              const optimize = b.standardOptimizeOption(.{});
-
-              const lib = b.addStaticLibrary(.{
-                  .name = "webview",
-                  .root_source_file = b.path("src/webview.zig"),
-                  .target = target,
-                  .optimize = optimize,
-              });
-
-              lib.linkLibC();
-              // lib.linkLibCpp(); // Removing this to be safe against crashes if no C++ sources
-              
-              // webview dependencies
-              lib.linkSystemLibrary("gtk+-3.0");
-              lib.linkSystemLibrary("webkit2gtk-4.0"); 
-              
-              b.installArtifact(lib);
-              
-              // Expose the module
-              _ = b.addModule("webview", .{
-                  .root_source_file = b.path("src/webview.zig"),
-              });
-          }
-          EOF
+          # Revert to patching build.zig (Smart Patch v2)
+          # We need to preserve the original logic (C++ sources, etc.) but fix Zig 0.13.0 incompatibilities.
           
-          echo "Debug: Overwritten deps/webview/build.zig:"
+          # 1. Remove the incompatible .root_module assignment
+          sed -i '/\.root_module/d' deps/webview/build.zig
+          
+          # 2. Inject .root_source_file into the addStaticLibrary struct
+          # We do this inline to avoid newline syntax issues
+          sed -i 's/\.name = "webview",/.name = "webview", .root_source_file = b.path("src\/webview.zig"),/g' deps/webview/build.zig
+          
+          # 3. Fix addLibrary -> addStaticLibrary (if not already handled by logic structure, but original likely used addStaticLibrary or addLibrary)
+          # The error "no field named 'root_module' in struct 'Build.StaticLibraryOptions'" confirms it IS using addStaticLibrary (or compatible), 
+          # but passing the wrong struct fields. So we just needed to fix the struct fields.
+          # However, if it uses addLibrary, we rename it.
+          sed -i 's/addLibrary/addStaticLibrary/g' deps/webview/build.zig
+          
+          echo "Debug: Patched deps/webview/build.zig:"
           cat deps/webview/build.zig
           
           # Patch main build.zig.zon to point to local path
