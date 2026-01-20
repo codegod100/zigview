@@ -1,5 +1,5 @@
 .{
-    .name = "zigview",
+    .name = .zigview,
     .version = "0.0.0",
     .dependencies = .{
         .webview = .{
