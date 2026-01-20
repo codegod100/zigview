@@ -60,11 +60,15 @@ jobs:
             exit 1
           fi
           
+          echo "File content before patch:"
+          cat "$ZON_FILE"
+          
           echo "Patching dependency at $ZON_FILE"
-          # Replace .name = .webview with .name = "webview" to fix the enum/string literal issue
-          sed -i 's/\.name[[:space:]]*=[[:space:]]*\.\([a-zA-Z0-9_]*\)/.name = "\1"/g' "$ZON_FILE"
+          # Simple, direct replacement for the known issue
+          sed -i 's/\.name = \.webview/.name = "webview"/g' "$ZON_FILE"
           
           # Verify patch
+          echo "File content after patch:"
           cat "$ZON_FILE"
 
       - name: Build Elm frontend
