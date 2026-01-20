@@ -57,6 +57,22 @@ jobs:
             echo "Original deps/webview/build.zig:"
             cat deps/webview/build.zig
             
+          # Overwrite deps/webview/build.zig.zon with a known-good version (fixing .name = .webview issue)
+          cat > deps/webview/build.zig.zon <<EOF
+          .{
+              .name = "webview",
+              .version = "0.1.0",
+              .paths = .{
+                  "build.zig",
+                  "build.zig.zon",
+                  "src",
+              },
+          }
+          EOF
+          
+          echo "Debug: Overwritten deps/webview/build.zig.zon:"
+          cat deps/webview/build.zig.zon
+          
           # Fix 'root_module' error in deps/webview/build.zig (incompatible with Zig 0.13.0)
           # We assume the code looks like: .root_module = module_thing,
           # We remove that line and inject .root_source_file
