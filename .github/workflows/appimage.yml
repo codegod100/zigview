@@ -47,16 +47,25 @@ jobs:
           # Fetch the dependency to populate the cache
           zig fetch https://github.com/thechampagne/webview-zig/archive/a5eef0bbff65c914ea893dae0816b956bcdee6c6.tar.gz
           
-          # Find the cached dependency directory (it will be in ~/.cache/zig/p/)
-          # We search for the directory containing the build.zig.zon file
-          CACHE_DIR=$(find ~/.cache/zig/p -type d -name "webview-zig-*" | head -n 1)
+          # Find the cached dependency directory
+          echo "Listing cache directory:"
+          ls -R ~/.cache/zig/p || true
           
-          echo "Patching dependency in $CACHE_DIR"
-          # Replace .name = .webview with .name = "webview" (or whatever matches) to fix the enum/string literal issue
-          sed -i 's/\.name = \.\([a-zA-Z0-9_]*\)/.name = "\1"/g' "$CACHE_DIR/build.zig.zon"
+          # Locate the build.zig.zon file within the specific package cache
+          # We look for the file inside the hashed directory structure
+          ZON_FILE=$(find ~/.cache/zig/p -name "build.zig.zon" | grep "webview-zig" | head -n 1)
+          
+          if [ -z "$ZON_FILE" ]; then
+            echo "Error: Could not find build.zig.zon for webview-zig"
+            exit 1
+          fi
+          
+          echo "Patching dependency at $ZON_FILE"
+          # Replace .name = .webview with .name = "webview" to fix the enum/string literal issue
+          sed -i 's/\.name = \.\([a-zA-Z0-9_]*\)/.name = "\1"/g' "$ZON_FILE"
           
           # Verify patch
-          cat "$CACHE_DIR/build.zig.zon"
+          cat "$ZON_FILE"
 
       - name: Build Elm frontend
         run: elm make Main.elm --output=src/app.js
