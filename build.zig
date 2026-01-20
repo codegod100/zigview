@@ -11,14 +11,17 @@ pub fn build(b: *std.Build) void {
 
     const webview_module = webview.module("webview");
 
-    const exe = b.addExecutable(.{
-        .name = "zigview",
+    const zigview_module = b.createModule(.{
         .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
     });
-    
-    exe.root_module.addImport("webview", webview_module);
+    zigview_module.addImport("webview", webview_module);
+
+    const exe = b.addExecutable(.{
+        .name = "zigview",
+        .root_module = zigview_module,
+    });
 
     exe.linkLibC();
     exe.linkLibrary(webview.artifact("webviewStatic"));
