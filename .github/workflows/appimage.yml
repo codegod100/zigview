@@ -73,24 +73,43 @@ jobs:
           echo "Debug: Overwritten deps/webview/build.zig.zon:"
           cat deps/webview/build.zig.zon
           
-          # Fix 'root_module' error in deps/webview/build.zig (incompatible with Zig 0.13.0)
-          # We assume the code looks like: .root_module = module_thing,
-          # We remove that line and inject .root_source_file
+          # Overwrite deps/webview/build.zig with a minimal Zig 0.13.0 version
+          # We include system linking which is required for webview
+          cat > deps/webview/build.zig <<EOF
+          const std = @import("std");
+
+          pub fn build(b: *std.Build) void {
+              const target = b.standardTargetOptions(.{});
+              const optimize = b.standardOptimizeOption(.{});
+
+              const lib = b.addStaticLibrary(.{
+                  .name = "webview",
+                  .root_source_file = b.path("src/webview.zig"),
+                  .target = target,
+                  .optimize = optimize,
+              });
+
+              lib.linkLibC();
+              // lib.linkLibCpp(); // Removing this to be safe against crashes if no C++ sources
+              
+              // webview dependencies
+              lib.linkSystemLibrary("gtk+-3.0");
+              lib.linkSystemLibrary("webkit2gtk-4.0"); 
+              
+              b.installArtifact(lib);
+              
+              // Expose the module
+              _ = b.addModule("webview", .{
+                  .root_source_file = b.path("src/webview.zig"),
+              });
+          }
+          EOF
           
-          echo "Patching deps/webview/build.zig..."
-          
-          # Remove .root_module line
-          sed -i '/\.root_module/d' deps/webview/build.zig
-          
-          # Inject .root_source_file after .name
-          sed -i 's/\.name = "webview",/\.name = "webview",\n            .root_source_file = b.path("src\/webview.zig"),/g' deps/webview/build.zig
-          
-          echo "Patched deps/webview/build.zig:"
+          echo "Debug: Overwritten deps/webview/build.zig:"
           cat deps/webview/build.zig
           
-          # Patch main build.zig.zon
-          # We replace the entire dependency block for webview
-          # This is a bit brittle with sed, so we'll overwrite the file content entirely for CI
+          # Patch main build.zig.zon to point to local path
+
           cat > build.zig.zon <<EOF
           .{
               .name = "zigview",
