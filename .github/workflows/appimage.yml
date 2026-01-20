@@ -42,34 +42,44 @@ jobs:
           chmod +x appimagetool
           sudo mv appimagetool /usr/local/bin/
 
-      - name: Patch webview-zig dependency
+      - name: Manual Dependency Setup
         run: |
-          # Fetch the dependency to populate the cache
-          zig fetch https://github.com/thechampagne/webview-zig/archive/a5eef0bbff65c914ea893dae0816b956bcdee6c6.tar.gz
+          # Create deps directory
+          mkdir -p deps/webview
           
-          # Find the cached dependency directory
-          echo "Listing cache directory:"
-          ls -R ~/.cache/zig/p || true
+          # Download and unpack webview-zig
+          wget https://github.com/thechampagne/webview-zig/archive/a5eef0bbff65c914ea893dae0816b956bcdee6c6.tar.gz -O webview.tar.gz
+          tar -xzf webview.tar.gz --strip-components=1 -C deps/webview
           
-          # Locate the build.zig.zon file within the specific package cache
-          # We look for the file inside the hashed directory structure
-          ZON_FILE=$(find ~/.cache/zig/p -name "build.zig.zon" | grep "webview-zig" | head -n 1)
-          
-          if [ -z "$ZON_FILE" ]; then
-            echo "Error: Could not find build.zig.zon for webview-zig"
-            exit 1
-          fi
-          
-          echo "File content before patch:"
-          cat "$ZON_FILE"
-          
-          echo "Patching dependency at $ZON_FILE"
-          # Simple, direct replacement for the known issue
-          sed -i 's/\.name = \.webview/.name = "webview"/g' "$ZON_FILE"
+          # Patch build.zig.zon in the local copy
+          # Replace .name = .webview with .name = "webview"
+          sed -i 's/\.name = \.webview/.name = "webview"/g' deps/webview/build.zig.zon
           
           # Verify patch
-          echo "File content after patch:"
-          cat "$ZON_FILE"
+          cat deps/webview/build.zig.zon
+          
+          # Patch main build.zig.zon to point to local path
+          # We replace the entire dependency block for webview
+          # This is a bit brittle with sed, so we'll overwrite the file content entirely for CI
+          cat > build.zig.zon <<EOF
+          .{
+              .name = "zigview",
+              .version = "0.0.0",
+              .dependencies = .{
+                  .webview = .{
+                      .path = "deps/webview",
+                  },
+              },
+              .paths = .{
+                  "build.zig",
+                  "build.zig.zon",
+                  "src",
+              },
+          }
+          EOF
+          
+          echo "Patched main build.zig.zon:"
+          cat build.zig.zon
 
       - name: Build Elm frontend
         run: elm make Main.elm --output=src/app.js
