@@ -2,9 +2,10 @@ name: Build AppImage
 
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
-      - 'dev*'
 
 jobs:
   build:
@@ -16,6 +17,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Zig
         uses: mlugg/setup-zig@v1
@@ -44,12 +47,32 @@ jobs:
       - name: Build AppImage
         run: zig build appimage
 
-      - name: Create Release
+      - name: Update dev tag
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git config --global user.email "action@github.com"
+          git config --global user.name "GitHub Action"
+          git tag -f dev
+          git push -f origin dev
+
+      - name: Release (dev)
         uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
+        if: github.ref == 'refs/heads/main'
+        with:
+          tag_name: dev
+          name: Development Build
+          body: "Automated rolling build from main branch."
+          files: ZigView-x86_64.AppImage
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Release (tagged)
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/v')
         with:
           files: ZigView-x86_64.AppImage
           draft: false
-          prerelease: true
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
