@@ -1,7 +1,6 @@
 .{
-    .name = .zigview,
+    .name = "zigview",
     .version = "0.0.0",
-    .fingerprint = 0xe24d146e230f974,
     .dependencies = .{
         .webview = .{
             .url = "https://github.com/thechampagne/webview-zig/archive/a5eef0bbff65c914ea893dae0816b956bcdee6c6.tar.gz",
