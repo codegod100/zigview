@@ -62,7 +62,7 @@ jobs:
           
           echo "Patching dependency at $ZON_FILE"
           # Replace .name = .webview with .name = "webview" to fix the enum/string literal issue
-          sed -i 's/\.name = \.\([a-zA-Z0-9_]*\)/.name = "\1"/g' "$ZON_FILE"
+          sed -i 's/\.name[[:space:]]*=[[:space:]]*\.\([a-zA-Z0-9_]*\)/.name = "\1"/g' "$ZON_FILE"
           
           # Verify patch
           cat "$ZON_FILE"
