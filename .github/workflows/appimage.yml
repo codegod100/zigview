@@ -55,25 +55,35 @@ jobs:
           # Replace .name = .webview with .name = "webview"
           sed -i 's/\.name = \.webview/.name = "webview"/g' deps/webview/build.zig.zon
           
-          # Patch deps/webview/build.zig to fix 0.13.0 compatibility (addLibrary -> addStaticLibrary)
-          # We assume it's a static library being built
-          sed -i 's/addLibrary/addStaticLibrary/g' deps/webview/build.zig
+          # Overwrite deps/webview/build.zig with a known-good Zig 0.13.0 compatible version
+          cat > deps/webview/build.zig <<EOF
+          const std = @import("std");
+
+          pub fn build(b: *std.Build) void {
+              const target = b.standardTargetOptions(.{});
+              const optimize = b.standardOptimizeOption(.{});
+
+              const lib = b.addStaticLibrary(.{
+                  .name = "webview",
+                  .root_source_file = b.path("src/webview.zig"),
+                  .target = target,
+                  .optimize = optimize,
+              });
+
+              lib.linkLibC();
+              lib.linkLibCpp();
+              
+              b.installArtifact(lib);
+              
+              // Expose the module for the main app
+              _ = b.addModule("webview", .{
+                  .root_source_file = b.path("src/webview.zig"),
+              });
+          }
+          EOF
           
-          echo "Debug: Content of deps/webview/build.zig:"
+          echo "Debug: Overwritten deps/webview/build.zig:"
           cat deps/webview/build.zig
-          
-          # Attempt to fix 'root_module' error blindly (comment it out) - this is a guess!
-          sed -i 's/\.root_module/\/\/ .root_module/g' deps/webview/build.zig
-          
-          # If we comment out root_module, we probably need to add root_source_file.
-          # We'll try to insert it after .name = "webview",
-          sed -i 's/\.name = "webview",/.name = "webview",\n            .root_source_file = b.path("src\/webview.zig"),/g' deps/webview/build.zig
-          
-          echo "Debug: Patched deps/webview/build.zig:"
-          cat deps/webview/build.zig
-          
-          # Verify patch
-          cat deps/webview/build.zig.zon
           
           # Patch main build.zig.zon to point to local path
           # We replace the entire dependency block for webview
