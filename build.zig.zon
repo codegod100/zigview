@@ -1,0 +1,12 @@
+.{
+    .name = .zigview,
+    .fingerprint = 0xe24d146a93da9dc,
+    .version = "0.1.0",
+    .paths = .{""},
+    .dependencies = .{
+        .webview = .{
+            .url = "https://github.com/thechampagne/webview-zig/archive/refs/heads/main.tar.gz",
+            .hash = "122063f9d9a2a6043f0b0d6dadb105131150c0c65eb6482d4fc7e0bd087c7b4ebae8",
+        },
+    },
+}
