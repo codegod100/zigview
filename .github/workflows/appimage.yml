@@ -42,50 +42,57 @@ jobs:
           chmod +x appimagetool
           sudo mv appimagetool /usr/local/bin/
 
-      - name: Manual Dependency Setup
-        run: |
-          # Create deps directory
-          mkdir -p deps/webview
-          
-          # Download and unpack webview-zig
-          wget https://github.com/thechampagne/webview-zig/archive/a5eef0bbff65c914ea893dae0816b956bcdee6c6.tar.gz -O webview.tar.gz
-          tar -xzf webview.tar.gz --strip-components=1 -C deps/webview
-          
-          # Patch build.zig.zon in the local copy
-          # Replace .name = .webview with .name = "webview"
-          sed -i 's/\.name = \.webview/.name = "webview"/g' deps/webview/build.zig.zon
-          
-          # Overwrite deps/webview/build.zig with a known-good Zig 0.13.0 compatible version
-          cat > deps/webview/build.zig <<EOF
-          const std = @import("std");
+          # Manual Dependency Setup
+          run: |
+            # Create deps directory
+            mkdir -p deps/webview
+            
+            # Download and unpack webview-zig
+            wget https://github.com/thechampagne/webview-zig/archive/a5eef0bbff65c914ea893dae0816b956bcdee6c6.tar.gz -O webview.tar.gz
+            tar -xzf webview.tar.gz --strip-components=1 -C deps/webview
+            
+            echo "Listing deps/webview:"
+            ls -R deps/webview
+            
+            echo "Original deps/webview/build.zig:"
+            cat deps/webview/build.zig
+            
+            # Overwrite deps/webview/build.zig
+            echo "Overwriting deps/webview/build.zig..."
+            cat > deps/webview/build.zig <<EOF
+            const std = @import("std");
 
-          pub fn build(b: *std.Build) void {
-              const target = b.standardTargetOptions(.{});
-              const optimize = b.standardOptimizeOption(.{});
+            pub fn build(b: *std.Build) void {
+                const target = b.standardTargetOptions(.{});
+                const optimize = b.standardOptimizeOption(.{});
 
-              const lib = b.addStaticLibrary(.{
-                  .name = "webview",
-                  .root_source_file = b.path("src/webview.zig"),
-                  .target = target,
-                  .optimize = optimize,
-              });
+                // Zig 0.13.0 compatible static library
+                const lib = b.addStaticLibrary(.{
+                    .name = "webview",
+                    .root_source_file = b.path("src/webview.zig"),
+                    .target = target,
+                    .optimize = optimize,
+                });
+                
+                // Add header include path if needed
+                lib.addIncludePath(b.path("src"));
 
-              lib.linkLibC();
-              lib.linkLibCpp();
-              
-              b.installArtifact(lib);
-              
-              // Expose the module for the main app
-              _ = b.addModule("webview", .{
-                  .root_source_file = b.path("src/webview.zig"),
-              });
-          }
-          EOF
-          
-          echo "Debug: Overwritten deps/webview/build.zig:"
-          cat deps/webview/build.zig
-          
-          # Patch main build.zig.zon to point to local path
+                lib.linkLibC();
+                lib.linkLibCpp();
+                
+                b.installArtifact(lib);
+                
+                // Expose the module
+                _ = b.addModule("webview", .{
+                    .root_source_file = b.path("src/webview.zig"),
+                });
+            }
+            EOF
+            
+            echo "New deps/webview/build.zig:"
+            cat deps/webview/build.zig
+            
+            # Patch main build.zig.zon
           # We replace the entire dependency block for webview
           # This is a bit brittle with sed, so we'll overwrite the file content entirely for CI
           cat > build.zig.zon <<EOF
