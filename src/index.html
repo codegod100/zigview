@@ -3,62 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <title>ZigView</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-        .container {
-            text-align: center;
-            color: white;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 40px;
-            border-radius: 15px;
-            backdrop-filter: blur(10px);
-            min-width: 400px;
-        }
-        h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-        }
-        #file-list {
-            margin-top: 20px;
-            text-align: left;
-            max-height: 300px;
-            overflow-y: auto;
-            background: rgba(0, 0, 0, 0.2);
-            padding: 15px;
-            border-radius: 10px;
-        }
-        #file-list div {
-            padding: 5px 10px;
-            margin: 3px 0;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        #file-list div:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
-        <h1>ZigView File Browser</h1>
-        <div id="file-list"></div>
+        <div class="header">
+            <button id="up-btn" onclick="navigateUp()">↑ Up</button>
+            <h1 id="current-path">ZigView File Browser</h1>
+        </div>
+        <div id="elm-app"></div>
     </div>
 
     <script>
-        const files = [];
+        // Global function to be called from Zig
+        window.loadFiles = function(path) {
+            if (typeof window.loadFilesFromZig === 'function') {
+                window.loadFilesFromZig(path);
+            }
+        };
 
-        document.getElementById('file-list').innerHTML = files
-            .map(f => `<div onclick="console.log('${f}')">${f}</div>`)
-            .join('');
+        // Global function to receive file list from Zig
+        window.onFilesLoaded = function(filesJson) {
+            if (typeof window.onFilesFromZig === 'function') {
+                window.onFilesFromZig(filesJson);
+            }
+        };
     </script>
+    <script src="app.js"></script>
+    <script src="bridge.js"></script>
 </body>
 </html>
