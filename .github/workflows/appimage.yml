@@ -55,6 +55,10 @@ jobs:
           # Replace .name = .webview with .name = "webview"
           sed -i 's/\.name = \.webview/.name = "webview"/g' deps/webview/build.zig.zon
           
+          # Patch deps/webview/build.zig to fix 0.13.0 compatibility (addLibrary -> addStaticLibrary)
+          # We assume it's a static library being built
+          sed -i 's/addLibrary/addStaticLibrary/g' deps/webview/build.zig
+          
           # Verify patch
           cat deps/webview/build.zig.zon
           
